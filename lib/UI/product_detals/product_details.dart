@@ -43,6 +43,9 @@ class _ProductDetailsState extends State<ProductDetails> {
       body: SafeArea(child: SingleChildScrollView(
         child: BlocBuilder<ProdDetailsCubit, ProdDetailsState>(
           builder: (context, state) {
+            if (state is ProdDetailsLoadState) {
+              return Center(child: PlatformCircularProgressIndicator());
+            }
             if (state is ProdDetailsLoadedState) {
               this.price = state.price;
               this.totalPrice = state.totalprice;
@@ -68,6 +71,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        //Название
                         PlatformText(
                           state.productCardModel.title,
                           style: const TextStyle(
@@ -79,48 +83,28 @@ class _ProductDetailsState extends State<ProductDetails> {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w400, fontSize: 10)),
                         const SizedBox(height: 16),
+
+                        //Описание
                         PlatformText(state.productCardModel.description,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w400, fontSize: 12)),
                         const SizedBox(height: 12),
-                        CustomButton(
-                          type: ButtonType.Text,
-                          textColor: kTextColor,
-                          label: 'Убрать ингридиенты',
-                          onPressed: (value, operation) {
-                            showIngridientsModal(context,
-                                items: state
-                                    .productCardModel.ingredientsForDelete);
-                          },
-                        ),
+
+                        deleteIngredientsButton(context, state),
+
                         const SizedBox(height: 12),
 
                         //Выбор размера пиццы
-                        PizzaRadius(
-                            // key: UniqueKey(),
-                            offers: state.offers,
-                            price: this.price,
-                            callBack: (value) {
-                              context
-                                  .read<ProdDetailsCubit>()
-                                  .selectRadius(value);
-                              // print(price);
-                            }),
+                        choicePizzaRadius(state, context),
                         const SizedBox(height: 22),
+
                         PlatformText('Добавить к товару',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w400, fontSize: 14)),
                         const SizedBox(height: 22),
 
                         //Ингредиенты
-                        Ingredients(
-                          ingredientsForAdd: state.ingredientsForAdd,
-                          callBack: (value, operation) {
-                            context
-                                .read<ProdDetailsCubit>()
-                                .addRemoveIngredients(value, operation);
-                          },
-                        ),
+                        getIngredients(state, context),
 
                         const SizedBox(height: 28),
                         PlatformText('С этим товаром покупают',
@@ -128,31 +112,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                 fontWeight: FontWeight.w400, fontSize: 14)),
                         const SizedBox(height: 18),
                         //С этим товаром покупают
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount:
-                              state.productCardModel.relatedProducts.length,
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 10,
-                            childAspectRatio:
-                                (MediaQuery.of(context).size.width / 2 - 21) /
-                                    280,
-                          ),
-                          itemBuilder: (context, index) {
-                            final relatedProducts =
-                                state.productCardModel.relatedProducts[index];
-
-                            return ProductCard(
-                                urlImage: relatedProducts.picture.big,
-                                title: relatedProducts.title,
-                                description: relatedProducts.title,
-                                price: price);
-                          },
-                        )
+                        buyWithThis(state, context)
                       ],
                     ),
                   ),
@@ -182,6 +142,62 @@ class _ProductDetailsState extends State<ProductDetails> {
           }
         },
       )),
+    );
+  }
+
+  GridView buyWithThis(ProdDetailsLoadedState state, BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: state.productCardModel.relatedProducts.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 10,
+        childAspectRatio: (MediaQuery.of(context).size.width / 2 - 21) / 280,
+      ),
+      itemBuilder: (context, index) {
+        final relatedProducts = state.productCardModel.relatedProducts[index];
+
+        return ProductCard(
+            urlImage: relatedProducts.picture.big,
+            title: relatedProducts.title,
+            description: relatedProducts.title,
+            price: price);
+      },
+    );
+  }
+
+  Ingredients getIngredients(
+      ProdDetailsLoadedState state, BuildContext context) {
+    return Ingredients(
+      ingredientsForAdd: state.ingredientsForAdd,
+      callBack: (value, operation) {
+        context.read<ProdDetailsCubit>().addRemoveIngredients(value, operation);
+      },
+    );
+  }
+
+  PizzaRadius choicePizzaRadius(
+      ProdDetailsLoadedState state, BuildContext context) {
+    return PizzaRadius(
+        offers: state.offers,
+        price: this.price,
+        callBack: (value) {
+          context.read<ProdDetailsCubit>().selectRadius(value);
+        });
+  }
+
+  CustomButton deleteIngredientsButton(
+      BuildContext context, ProdDetailsLoadedState state) {
+    return CustomButton(
+      type: ButtonType.Text,
+      textColor: kTextColor,
+      label: 'Убрать ингридиенты',
+      onPressed: (value, operation) {
+        showIngridientsModal(context,
+            items: state.productCardModel.ingredientsForDelete);
+      },
     );
   }
 
